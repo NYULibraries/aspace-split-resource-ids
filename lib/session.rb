@@ -46,9 +46,17 @@ class Session
     rec = get_resource_records(repo, resource_id)
     if rec.success?
       result = nil
-      id = MultiJson.load(rec.body)['id_0']
+      record = MultiJson.load(rec.body)
+      ids = []
+      ids << record['id_0']
+      for i in 1..3
+        ids << MultiJson.load(rec.body)["id_#{i}"]
+      end
+      ids.compact!
       regexp = /\W/
-      result = id if regexp.match(id)
+      ids.each { |id|
+        result = ids if regexp.match(id)
+      }
       result
     else
       CheckErrors.handle_errors(rec)
