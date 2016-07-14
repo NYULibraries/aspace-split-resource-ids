@@ -15,7 +15,9 @@ class Session
     @rsp = aspace_login
     @session = get_session
   end
+  def update_record(repo, aspace_res_id, resource_id)
 
+  end
   def get_repo_urls
     rec = get_repo
     payload = MultiJson.load(rec.body)
@@ -43,9 +45,10 @@ class Session
   def get_records(repo, resource_id)
     rec = get_resource_records(repo, resource_id)
     if rec.success?
+      result = nil
       id = MultiJson.load(rec.body)['id_0']
       regexp = /\W/
-      result = regexp.match(id) ? id : ""
+      result = id if regexp.match(id)
       result
     else
       CheckErrors.handle_errors(rec)
