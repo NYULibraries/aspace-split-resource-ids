@@ -15,7 +15,7 @@ class Session
     @rsp = aspace_login
     @session = get_session
   end
-  def update_record(repo, aspace_res_id, resource_id)
+  def update_record(repo, aspace_res_id, id_hash)
 
   end
   def get_repo_urls
@@ -47,9 +47,7 @@ class Session
     if rec.success?
       record = MultiJson.load(rec.body)
       result = process_ids(record)
-      File.open("#{resource_id}.json",'w') { |file|
-          file.write(record)
-      } unless result.nil?
+      gen_json_files(resource_id,record) unless result.nil?
       result
     else
       CheckErrors.handle_errors(rec)
@@ -58,6 +56,18 @@ class Session
 
 
   private
+  def gen_json_files(resource_id,record)
+    @filename = "#{resource_id}.json"
+    begin
+      file = File.open(@filename,'w')
+      file.write(record)
+    rescue IOError => e
+      CheckErrors.handle_errors(e)
+    ensure
+      file.close unless file.nil?
+    end
+  end
+
   def aspace_connect
     Faraday.new(:url => @url) do |req|
       req.options.timeout = 3600

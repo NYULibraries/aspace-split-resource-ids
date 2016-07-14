@@ -19,8 +19,24 @@ def split_resource(rec_id)
   right_ids.flatten
 end
 
+def update_hash(ids)
+  id_hash = {}
+  position = 0
+  stuff = []
+  ids.each { |i|
+    if position < 3
+      id_hash["id_#{position}"] = i
+    else
+      stuff << i
+    end
+    position = position + 1
+  }
+  id_hash['id_3'] = stuff.join("") unless stuff.empty?
+  id_hash
+end
+
 file = "logs/#{Time.now.getutc.to_i}.txt"
-LOG = Logger.new(file)
+LOG = Logger.new(STDOUT)
 begin
   config_file = "config.yml"
   CONFIG = YAML.load_file(config_file)
@@ -55,10 +71,12 @@ urls.each { |url|
 resource_ids.each_pair { |repo,resource_ids|
    resource_ids.each { |r|
      rec_id = aspace_session.get_records(repo,r)
-     split_ids = split_resource(rec_id) if rec_id
-     output_ids =  split_ids.to_s if split_ids
-     LOG.info("#{repo}/#{r}/#{rec_id}: #{output_ids}")
-     #aspace_session.update_record(repo, resource_id,rec_id)
+     if rec_id
+       split_ids = split_resource(rec_id)
+       h = update_hash(split_ids)
+       #puts "#{repo}/#{r}: orig: #{rec_id} new: #{h}"
+     end
+
    }
 
 }
