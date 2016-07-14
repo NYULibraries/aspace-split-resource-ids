@@ -45,18 +45,11 @@ class Session
   def get_records(repo, resource_id)
     rec = get_resource_records(repo, resource_id)
     if rec.success?
-      result = nil
       record = MultiJson.load(rec.body)
-      ids = []
-      ids << record['id_0']
-      for i in 1..3
-        ids << MultiJson.load(rec.body)["id_#{i}"]
-      end
-      ids.compact!
-      regexp = /\W/
-      ids.each { |id|
-        result = ids if regexp.match(id)
-      }
+      result = process_ids(record)
+      File.open("#{resource_id}.json",'w') { |file|
+          file.write(record)
+      } unless result.nil?
       result
     else
       CheckErrors.handle_errors(rec)
@@ -112,5 +105,19 @@ class Session
       req.url "/repositories"
       req.headers['X-ArchivesSpace-Session'] = @session
     end
+  end
+
+  def process_ids(record)
+    result = nil
+    ids = []
+    for i in 0..3
+      ids << record["id_#{i}"]
+    end
+    ids.compact!
+    regexp = /\W/
+    ids.each { |id|
+      result = ids if regexp.match(id)
+    }
+    result
   end
 end
