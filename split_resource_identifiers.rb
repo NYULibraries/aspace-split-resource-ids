@@ -74,6 +74,7 @@ repo_arg = ARGV[0]
 resource = ARGV[1]
 file = "logs/#{Time.now.getutc.to_i}.txt"
 LOG = Logger.new(file)
+puts "Log is located here: #{file}"
 begin
   config_file = "config.yml"
   CONFIG = YAML.load_file(config_file)
