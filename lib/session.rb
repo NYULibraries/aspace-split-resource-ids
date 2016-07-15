@@ -16,7 +16,10 @@ class Session
     @session = get_session
   end
   def update_record(repo, aspace_res_id, id_hash)
-
+    @updated_record = @record.merge(id_hash).to_json
+    r = put_file(repo,aspace_res_id)
+    binding.pry
+    #gen_json_files(aspace_res_id,updated_record)
   end
   def get_repo_urls
     rec = get_repo
@@ -45,9 +48,8 @@ class Session
   def get_records(repo, resource_id)
     rec = get_resource_records(repo, resource_id)
     if rec.success?
-      record = MultiJson.load(rec.body)
-      result = process_ids(record)
-      gen_json_files(resource_id,record) unless result.nil?
+      @record = MultiJson.load(rec.body)
+      result = process_ids(@record)
       result
     else
       CheckErrors.handle_errors(rec)
@@ -56,11 +58,11 @@ class Session
 
 
   private
-  def gen_json_files(resource_id,record)
+  def gen_json_files(resource_id, updated_record)
     @filename = "#{resource_id}.json"
     begin
       file = File.open(@filename,'w')
-      file.write(record)
+      file.write(updated_record)
     rescue IOError => e
       CheckErrors.handle_errors(e)
     ensure
@@ -71,6 +73,7 @@ class Session
   def aspace_connect
     Faraday.new(:url => @url) do |req|
       req.options.timeout = 3600
+      #req.request :multipart
       req.request :url_encoded
       req.adapter :net_http
 
@@ -117,6 +120,14 @@ class Session
     end
   end
 
+  def put_file(repo,id)
+    #payload = { :file => Faraday::UploadIO.new(@filename, 'applicaton/json'}
+    @conn.post do |req|
+      req.url "#{repo}/resources/#{id}"
+      req.headers['X-ArchivesSpace-Session'] = @session
+      req.body = @updated_record
+    end
+  end
   def process_ids(record)
     result = nil
     ids = []

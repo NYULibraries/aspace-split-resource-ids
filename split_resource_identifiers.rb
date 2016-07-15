@@ -36,6 +36,7 @@ def update_hash(ids)
 end
 
 file = "logs/#{Time.now.getutc.to_i}.txt"
+#LOG = Logger.new(file)
 LOG = Logger.new(STDOUT)
 begin
   config_file = "config.yml"
@@ -61,22 +62,34 @@ urls.each { |url|
 #count = 0
 #repo = resource_ids.keys[0]
 #resource_id = resource_ids['repo'][2]
-#r = aspace_session.get_records('/repositories/3','141')
+rec_id = aspace_session.get_records('/repositories/2','2')
+if rec_id
+  repo = "/repositories/2"
+  r = "2"
+  split_ids = split_resource(rec_id)
+  h = update_hash(split_ids)
+  #puts "#{repo}/#{r}: orig: #{rec_id} new: #{h}"
+  LOG.info("/repositories/2/2: orig: #{rec_id} new: #{h}")
+  aspace_session.update_record(repo,r,h)
+end
 #r = aspace_session.get_records('/repositories/3','244')
 #split_ids = split_resource(r) if r
 #output_ids =  split_ids.to_s if split_ids
 
 # do for all records
-
+=begin
 resource_ids.each_pair { |repo,resource_ids|
    resource_ids.each { |r|
      rec_id = aspace_session.get_records(repo,r)
      if rec_id
        split_ids = split_resource(rec_id)
        h = update_hash(split_ids)
-       #puts "#{repo}/#{r}: orig: #{rec_id} new: #{h}"
+       puts "#{repo}/#{r}: orig: #{rec_id} new: #{h}"
+       LOG.info("#{repo}/#{r}: orig: #{rec_id} new: #{h}")
+       aspace_session.update_record(repo,r,h)
      end
 
    }
 
 }
+=end
