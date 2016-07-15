@@ -5,7 +5,7 @@ include CheckErrors
 
 class Session
   attr_reader :url, :password, :repo_url, :login_url
-
+  ERROR_PATH = "errors"
   def initialize(url, password, resource_url, login_url)
     @url = url
     @password = password
@@ -17,17 +17,20 @@ class Session
   end
   def update_record(repo, aspace_res_id, id_hash)
     @updated_record = @record.merge(id_hash).to_json
-    response = put_file(repo,aspace_res_id)
-    #gen_json_files(aspace_res_id,updated_record)
+    response = put_record(repo,aspace_res_id)
     if response.success?
       msg = MultiJson.load(response.body)['status']
       LOG.info("#{msg}: #{repo}/#{aspace_res_id}")
     else
+      # writing out the file for further investigation
+      gen_json_files(aspace_res_id)
       err = MultiJson.load(response.body)['error']
-      LOG.error("Problem updating #{repo}/#{aspace_res_id}:\n #{response.body}")
+      LOG.error("Problem updating #{repo}/#{aspace_res_id}")
+      LOG.info("File has been written out for further investigation: #{@filename}")
+      LOG.error("#{response.body}")
     end
-
   end
+
   def get_repo_urls
     rec = get_repo
     payload = MultiJson.load(rec.body)
@@ -66,21 +69,22 @@ class Session
 
   private
   def gen_json_files(resource_id)
-    @filename = "#{resource_id}.json"
+    @filename = "#{ERROR_PATH}/#{resource_id}.json"
+    File.delete(@filename) if File.exist?(@filename)
     begin
       file = File.open(@filename,'w')
-      file.write(updated_record)
+      file.write(@updated_record)
     rescue IOError => e
       CheckErrors.handle_errors(e)
     ensure
       file.close unless file.nil?
     end
+
   end
 
   def aspace_connect
     Faraday.new(:url => @url) do |req|
       req.options.timeout = 3600
-      #req.request :multipart
       req.request :url_encoded
       req.adapter :net_http
 
@@ -127,8 +131,7 @@ class Session
     end
   end
 
-  def put_file(repo,id)
-    #payload = { :file => Faraday::UploadIO.new(@filename, 'applicaton/json'}
+  def put_record(repo,id)
     @conn.post do |req|
       req.url "#{repo}/resources/#{id}"
       req.headers['X-ArchivesSpace-Session'] = @session
