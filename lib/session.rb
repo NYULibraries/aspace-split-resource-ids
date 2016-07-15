@@ -17,9 +17,16 @@ class Session
   end
   def update_record(repo, aspace_res_id, id_hash)
     @updated_record = @record.merge(id_hash).to_json
-    r = put_file(repo,aspace_res_id)
-    binding.pry
+    response = put_file(repo,aspace_res_id)
     #gen_json_files(aspace_res_id,updated_record)
+    if response.success?
+      msg = MultiJson.load(response.body)['status']
+      LOG.info("#{msg}: #{repo}/#{aspace_res_id}")
+    else
+      err = MultiJson.load(response.body)['error']
+      LOG.error("Problem updating #{repo}/#{aspace_res_id}:\n #{response.body}")
+    end
+
   end
   def get_repo_urls
     rec = get_repo
@@ -58,7 +65,7 @@ class Session
 
 
   private
-  def gen_json_files(resource_id, updated_record)
+  def gen_json_files(resource_id)
     @filename = "#{resource_id}.json"
     begin
       file = File.open(@filename,'w')

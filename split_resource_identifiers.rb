@@ -69,7 +69,7 @@ if rec_id
   split_ids = split_resource(rec_id)
   h = update_hash(split_ids)
   #puts "#{repo}/#{r}: orig: #{rec_id} new: #{h}"
-  LOG.info("/repositories/2/2: orig: #{rec_id} new: #{h}")
+  LOG.info("Processing /repositories/2/2:\n orig: #{rec_id} new: #{h}")
   aspace_session.update_record(repo,r,h)
 end
 #r = aspace_session.get_records('/repositories/3','244')
