@@ -25,29 +25,12 @@ def run_all_repos
   resource_ids
 end
 
-def split_resource(rec_id)
-  right_ids = []
-  rec_id.each { |id|
-    arr = id.split(/\W/)
-    formatted_id = arr.reject { |s| s.nil? || s.strip.empty? }
-    right_ids << formatted_id
-  }
-  right_ids.flatten
-end
-
 def update_hash(ids)
   id_hash = {}
-  position = 0
-  stuff = []
-  ids.each { |i|
-    if position < 3
-      id_hash["id_#{position}"] = i
-    else
-      stuff << i
-    end
-    position = position + 1
-  }
-  id_hash['id_3'] = stuff.join("") unless stuff.empty?
+  size = ids.size - 1
+  for i in 0..size
+    id_hash["id_#{i}"] = ids[i]
+  end
   id_hash
 end
 
@@ -63,11 +46,25 @@ def process_resource_ids(resource_ids)
 end
 
 def process_formatted_ids(repo, resource_id, rec_id)
-  split_ids = split_resource(rec_id)
-  h = update_hash(split_ids)
+  ids = process_ids(rec_id)
+  h = update_hash(ids)
+  puts "#{repo}/#{resource_id}: orig: #{rec_id} new: #{ids.to_s}"
   puts "#{repo}/#{resource_id}: orig: #{rec_id} new: #{h}"
   LOG.info("#{repo}/#{resource_id}: orig: #{rec_id} new: #{h}")
-  @aspace_session.update_record(repo,resource_id,h)
+  #@aspace_session.update_record(repo,resource_id,h)
+end
+
+def process_ids(str,ids = [], count = 0)
+  match_string = str.partition(REGEXP)
+  is_empty = match_string.join("").empty?
+  if count <= 2 && not(is_empty)
+    ids << match_string[0]
+    count = count + 1
+    process_ids(match_string[2], ids, count)
+  else
+    ids << match_string.join("") unless is_empty
+  end
+  ids
 end
 
 repo_arg = ARGV[0]
@@ -85,11 +82,12 @@ end
 mode = %w(local dev stage)
 pass_mode = %w(local_test local_prod)
 user = CONFIG['user']
-password = CONFIG['password'][pass_mode[0]]
+password = CONFIG['password'][pass_mode[1]]
 url = CONFIG['aspace'][mode[0]]
 login = "/users/#{user}/login"
 repo = "/repositories"
-@aspace_session = Session.new(url,password,repo,login)
+REGEXP = /[\.|\s]/
+@aspace_session = Session.new(url,password,repo,login,REGEXP)
 resource_ids = {}
 repo_url = "#{repo}/#{repo_arg}"
 if repo_arg.nil? && resource.nil?

@@ -4,9 +4,10 @@ require_relative 'check_errors'
 include CheckErrors
 
 class Session
-  attr_reader :url, :password, :repo_url, :login_url
+  attr_reader :url, :password, :repo_url, :login_url, :regexp
   ERROR_PATH = "errors"
-  def initialize(url, password, resource_url, login_url)
+  def initialize(url, password, resource_url, login_url, regexp)
+    @regexp = regexp
     @url = url
     @password = password
     @repo_url = repo_url
@@ -15,6 +16,7 @@ class Session
     @rsp = aspace_login
     @session = get_session
   end
+
   def update_record(repo, aspace_res_id, id_hash)
     @updated_record = @record.merge(id_hash).to_json
     response = put_record(repo,aspace_res_id)
@@ -145,10 +147,11 @@ class Session
       ids << record["id_#{i}"]
     end
     ids.compact!
-    regexp = /\W/
     ids.each { |id|
-      result = ids if regexp.match(id)
+      result = ids if @regexp.match(id)
     }
-    result
+
+    # returning a string unless result is nil
+    result.join("") unless result.nil?
   end
 end
