@@ -48,10 +48,8 @@ end
 def process_formatted_ids(repo, resource_id, rec_id)
   ids = process_ids(rec_id)
   h = update_hash(ids)
-  puts "#{repo}/#{resource_id}: orig: #{rec_id} new: #{ids.to_s}"
-  puts "#{repo}/#{resource_id}: orig: #{rec_id} new: #{h}"
   LOG.info("#{repo}/#{resource_id}: orig: #{rec_id} new: #{h}")
-  #@aspace_session.update_record(repo,resource_id,h)
+  @aspace_session.update_record(repo,resource_id,h)
 end
 
 def process_ids(str,ids = [], count = 0)
@@ -82,7 +80,7 @@ end
 mode = %w(local dev stage)
 pass_mode = %w(local_test local_prod)
 user = CONFIG['user']
-password = CONFIG['password'][pass_mode[1]]
+password = CONFIG['password'][pass_mode[0]]
 url = CONFIG['aspace'][mode[0]]
 login = "/users/#{user}/login"
 repo = "/repositories"
@@ -96,7 +94,7 @@ elsif repo_arg && resource.nil?
   resource_ids = run_one_repo(repo_url)
 elsif repo_arg && resource
   rec_id = @aspace_session.get_records(repo_url,resource)
-  process_formatted_ids(repo_url, resource, rec_id)
+  process_formatted_ids(repo_url, resource, rec_id) if rec_id
 else
   LOG.error("Invalid argument")
 end

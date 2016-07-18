@@ -61,8 +61,7 @@ class Session
     rec = get_resource_records(repo, resource_id)
     if rec.success?
       @record = MultiJson.load(rec.body)
-      result = process_ids(@record)
-      result
+      process_ids(repo, resource_id)
     else
       CheckErrors.handle_errors(rec)
     end
@@ -140,18 +139,27 @@ class Session
       req.body = @updated_record
     end
   end
-  def process_ids(record)
+  def process_ids(repo, resource_id)
     result = nil
+    unwanted = /[\/|-|,]/
     ids = []
     for i in 0..3
-      ids << record["id_#{i}"]
+      ids << @record["id_#{i}"]
     end
     ids.compact!
     ids.each { |id|
-      result = ids if @regexp.match(id)
+      if @regexp.match(id) and not(unwanted.match(id))
+        result = ids
+      end
     }
-
+    if result.nil?
+      LOG.info("Skipping #{repo}/#{resource_id}, ids: #{ids.to_s}")
+    else
+      LOG.info("Processing #{repo}/#{resource_id}")
+    end
+    
     # returning a string unless result is nil
     result.join("") unless result.nil?
+
   end
 end
