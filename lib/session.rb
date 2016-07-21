@@ -1,5 +1,7 @@
 require 'logger'
 require "faraday"
+require "uri"
+require 'faraday_middleware'
 require_relative 'check_errors'
 include CheckErrors
 
@@ -18,15 +20,15 @@ class Session
   end
 
   def update_record(repo, aspace_res_id, id_hash)
-    @updated_record = @record.merge(id_hash).to_json
+    @updated_record = @record.merge(id_hash)
     response = put_record(repo,aspace_res_id)
     if response.success?
-      msg = MultiJson.load(response.body)['status']
+      msg = response.body['status']
       LOG.info("#{msg}: #{repo}/#{aspace_res_id}")
     else
       # writing out the file for further investigation
       gen_json_files(aspace_res_id)
-      err = MultiJson.load(response.body)['error']
+      err = response.body['error']
       LOG.error("Problem updating #{repo}/#{aspace_res_id}")
       LOG.info("File has been written out for further investigation: #{@filename}")
       LOG.error("#{response.body}")
@@ -35,7 +37,7 @@ class Session
 
   def get_repo_urls
     rec = get_repo
-    payload = MultiJson.load(rec.body)
+    payload = rec.body
     if rec.success?
       urls = []
       payload.each { |data|
@@ -51,21 +53,21 @@ class Session
   def get_resources(repo)
     rec = get_resource_ids(repo)
     if rec.success?
-      id = MultiJson.load(rec.body)
+      id = rec.body
     else
       CheckErrors.handle_errors(rec)
     end
   end
-
   def get_records(repo, resource_id)
     rec = get_resource_records(repo, resource_id)
     if rec.success?
-      @record = MultiJson.load(rec.body)
+      @record = rec.body
       process_ids(repo, resource_id)
     else
       CheckErrors.handle_errors(rec)
     end
   end
+
 
 
   private
@@ -86,7 +88,8 @@ class Session
   def aspace_connect
     Faraday.new(:url => @url) do |req|
       req.options.timeout = 3600
-      req.request :url_encoded
+      req.request :json
+      req.response :json, :content_type => /\bjson$/
       req.adapter :net_http
 
     end
@@ -102,7 +105,7 @@ class Session
   def get_session
     if @rsp.success?
       LOG.info("Logged in")
-      MultiJson.load(@rsp.body)['session']
+      @rsp.body['session']
     else
       CheckErrors.handle_errors("Problem with login: #{@rsp.body}")
     end
@@ -133,11 +136,12 @@ class Session
   end
 
   def put_record(repo,id)
-    @conn.post do |req|
-      req.url "#{repo}/resources/#{id}"
-      req.headers['X-ArchivesSpace-Session'] = @session
-      req.body = @updated_record
-    end
+      @conn.post do |req|
+        req.url "#{repo}/resources/#{id}"
+        req.headers['X-ArchivesSpace-Session'] = @session
+        req.body = @updated_record
+        #req.body = record
+      end
   end
   def process_ids(repo, resource_id)
     result = nil
@@ -157,7 +161,7 @@ class Session
     else
       LOG.info("Processing #{repo}/#{resource_id}")
     end
-    
+
     # returning a string unless result is nil
     result.join("") unless result.nil?
 

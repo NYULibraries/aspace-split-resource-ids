@@ -80,7 +80,7 @@ end
 mode = %w(local dev stage)
 pass_mode = %w(local_test local_prod)
 user = CONFIG['user']
-password = CONFIG['password'][pass_mode[0]]
+password = CONFIG['password'][pass_mode[1]]
 url = CONFIG['aspace'][mode[0]]
 login = "/users/#{user}/login"
 repo = "/repositories"
